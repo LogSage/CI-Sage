@@ -1,0 +1,47 @@
+name: CI-Sage
+description: An agentic system that analyzes GitHub Actions failures and provides intelligent remediation with CI-Sage
+version: 1.0.0
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ci-sage"
+version = "1.0.0"
+description = "An agentic system that analyzes GitHub Actions failures and provides intelligent remediation with CI-Sage"
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.104.1",
+    "uvicorn>=0.24.0",
+    "httpx>=0.25.2",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.5.0",
+    "cryptography>=41.0.8",
+    "PyJWT>=2.8.0",
+    "anthropic>=0.7.8",
+    "redis>=5.0.1",
+    "sqlalchemy>=2.0.23",
+    "alembic>=1.13.1",
+    "psycopg2-binary>=2.9.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+line_length = 88
