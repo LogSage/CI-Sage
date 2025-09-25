@@ -101,15 +101,17 @@ async def health_check():
     
     # Check GitHub App configuration
     try:
-        if settings.is_production:
+        if settings.has_real_github_app:
             health_status["dependencies"]["github_app"] = {
                 "status": "configured",
-                "type": "github_app"
+                "type": "github_app",
+                "app_id": settings.GITHUB_APP_ID
             }
         else:
             health_status["dependencies"]["github_app"] = {
                 "status": "test_mode",
-                "type": "github_app"
+                "type": "github_app",
+                "app_id": settings.GITHUB_APP_ID
             }
     except Exception as e:
         health_status["dependencies"]["github_app"] = {

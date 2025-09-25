@@ -9,7 +9,18 @@ class Settings(BaseSettings):
     # GitHub App Configuration
     GITHUB_APP_ID: str = "test_app_id"
     GITHUB_PRIVATE_KEY_PATH: str = "test_key.pem"
+    GITHUB_PRIVATE_KEY: Optional[str] = None  # For Railway deployment
     GITHUB_WEBHOOK_SECRET: str = "test_secret"
+    
+    # Helper property to check if GitHub App is configured
+    @property
+    def has_real_github_app(self) -> bool:
+        """Check if GitHub App is configured with real values"""
+        return (
+            self.GITHUB_APP_ID != "test_app_id" and
+            self.GITHUB_WEBHOOK_SECRET != "test_secret" and
+            (self.GITHUB_PRIVATE_KEY is not None or self.GITHUB_PRIVATE_KEY_PATH != "test_key.pem")
+        )
     
     # Claude API Configuration
     ANTHROPIC_API_KEY: str = "test_api_key"
