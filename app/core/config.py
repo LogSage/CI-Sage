@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/ci_sage"
     REDIS_URL: str = "redis://localhost:6379"
     
+    # Railway-specific configuration
+    @property
+    def railway_database_url(self) -> str:
+        """Get Railway PostgreSQL URL if available"""
+        # Railway provides DATABASE_URL automatically when PostgreSQL service is added
+        return os.getenv("DATABASE_URL", self.DATABASE_URL)
+    
     # Application Configuration
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"

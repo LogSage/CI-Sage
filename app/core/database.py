@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Database setup
-engine = create_engine(settings.DATABASE_URL)
+engine = create_engine(settings.railway_database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -19,12 +19,18 @@ async def init_db():
         # Import all models to ensure they're registered
         from app.models import ErrorSignature, WorkflowAnalysis, LearningFeedback
         
+        # Test database connection first
+        with engine.connect() as conn:
+            from sqlalchemy import text
+            conn.execute(text("SELECT 1"))
+        
         # Create all tables
         Base.metadata.create_all(bind=engine)
         logger.info("Database initialized successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        raise
+        logger.warning(f"Database not available: {e}")
+        logger.info("App will start without database - add PostgreSQL service in Railway")
+        # Don't raise exception - let app start without database
 
 def get_db():
     """Dependency to get database session"""
