@@ -57,7 +57,7 @@ async def test_claude_analyzer():
         mock_analyzer = MagicMock()
         mock_analyzer_class.return_value = mock_analyzer
         
-        # Mock the analyze_workflow_failure method
+        # Mock the analyze_workflow_failure method to return a coroutine
         from app.models.schemas import AnalysisResult
         mock_result = AnalysisResult(
             failure_reason="Dependency not found",
@@ -69,7 +69,11 @@ async def test_claude_analyzer():
             auto_fix_patch="name: test\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v3\n      - name: Install dependencies\n        run: npm install"
         )
         
-        mock_analyzer.analyze_workflow_failure.return_value = mock_result
+        # Create an async mock that returns the result
+        async def mock_analyze(*args, **kwargs):
+            return mock_result
+        
+        mock_analyzer.analyze_workflow_failure = mock_analyze
         
         # Test the mocked analyzer
         result = await mock_analyzer.analyze_workflow_failure(
