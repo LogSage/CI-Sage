@@ -33,59 +33,80 @@ class WorkflowProcessor:
     ):
         """Process a failed workflow run through the complete pipeline"""
         try:
-            logger.info(f"Starting analysis for workflow {workflow_run_id}")
+            logger.info(f"WORKFLOW PROCESSOR: Starting analysis for workflow {workflow_run_id}")
+            logger.info(f"WORKFLOW PROCESSOR: Repository: {repository_name}")
+            logger.info(f"WORKFLOW PROCESSOR: Installation ID: {installation_id}")
             
             # Step 1: Fetch logs and artifacts
+            logger.info("WORKFLOW PROCESSOR: STEP 1 - Fetching workflow data from GitHub")
             logs, artifacts = await self._fetch_workflow_data(
                 installation_id, repository_name, workflow_run_id
             )
             
             if not logs:
-                logger.warning(f"No logs found for workflow {workflow_run_id}")
+                logger.warning(f"WORKFLOW PROCESSOR: No logs found for workflow {workflow_run_id}")
+                logger.warning("WORKFLOW PROCESSOR: Cannot proceed without logs - skipping analysis")
                 return
             
+            logger.info(f"WORKFLOW PROCESSOR: Successfully fetched {len(logs)} characters of logs")
+            
             # Step 2: Analyze with Claude
+            logger.info("WORKFLOW PROCESSOR: STEP 2 - Analyzing with Claude AI")
             analysis_result = await self._analyze_with_claude(
                 logs, workflow_name, artifacts
             )
+            logger.info(f"WORKFLOW PROCESSOR: Claude analysis completed - confidence: {analysis_result.confidence_score}")
             
             # Step 3: Store error signature for learning
+            logger.info("WORKFLOW PROCESSOR: STEP 3 - Storing error signature in database")
             error_signature = await self._store_error_signature(
                 logs, analysis_result
             )
+            logger.info(f"WORKFLOW PROCESSOR: Error signature stored with ID: {error_signature.id}")
             
             # Step 4: Create GitHub Check Run
+            logger.info("WORKFLOW PROCESSOR: STEP 4 - Creating GitHub Check Run")
             check_run = await self._create_check_run(
                 installation_id, repository_name, head_sha,
                 workflow_name, analysis_result
             )
+            logger.info(f"WORKFLOW PROCESSOR: Check run created with ID: {check_run.get('id')}")
             
             # Step 5: Create or update issue (if confidence is high)
+            logger.info("WORKFLOW PROCESSOR: STEP 5 - Checking if issue should be created")
             issue_id = None
             if analysis_result.confidence_score > 0.7:
+                logger.info("WORKFLOW PROCESSOR: High confidence - creating GitHub issue")
                 issue_id = await self._create_or_update_issue(
                     installation_id, repository_name,
                     workflow_name, analysis_result
                 )
+                logger.info(f"WORKFLOW PROCESSOR: Issue created with ID: {issue_id}")
+            else:
+                logger.info(f"WORKFLOW PROCESSOR: Low confidence ({analysis_result.confidence_score}) - skipping issue creation")
             
             # Step 6: Store analysis in database
+            logger.info("WORKFLOW PROCESSOR: STEP 6 - Storing complete analysis in database")
             await self._store_analysis(
                 workflow_run_id, repository_name, workflow_name,
                 conclusion, analysis_result, error_signature.id,
                 check_run.get('id'), issue_id
             )
+            logger.info("WORKFLOW PROCESSOR: Analysis stored in database successfully")
             
             # Step 7: Generate patch if auto-fixable (advanced feature)
             if analysis_result.can_auto_fix and analysis_result.auto_fix_patch:
+                logger.info("WORKFLOW PROCESSOR: STEP 7 - Auto-fix available - proposing patch")
                 await self._propose_patch(
                     installation_id, repository_name, head_sha,
                     analysis_result
                 )
+                logger.info("WORKFLOW PROCESSOR: Patch proposed successfully")
             
-            logger.info(f"Completed analysis for workflow {workflow_run_id}")
+            logger.info(f"WORKFLOW PROCESSOR: Completed full analysis for workflow {workflow_run_id}")
             
         except Exception as e:
-            logger.error(f"Error processing workflow {workflow_run_id}: {e}")
+            logger.error(f"WORKFLOW PROCESSOR: Error processing workflow {workflow_run_id}: {e}")
             raise
     
     async def _fetch_workflow_data(
