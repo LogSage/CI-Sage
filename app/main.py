@@ -53,13 +53,76 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Detailed health check"""
-    return {
+    """Detailed health check with dependency verification"""
+    health_status = {
         "status": "healthy",
-        "database": "connected",  # TODO: Add actual DB health check
-        "redis": "connected",     # TODO: Add actual Redis health check
-        "claude": "configured"    # TODO: Add actual Claude API health check
+        "version": "1.0.0",
+        "timestamp": None,
+        "dependencies": {}
     }
+    
+    # Check database connectivity
+    try:
+        from app.core.database import engine
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        health_status["dependencies"]["database"] = {
+            "status": "healthy",
+            "type": "postgresql"
+        }
+    except Exception as e:
+        health_status["dependencies"]["database"] = {
+            "status": "unhealthy",
+            "error": str(e),
+            "type": "postgresql"
+        }
+        health_status["status"] = "degraded"
+    
+    # Check Claude API configuration
+    try:
+        from app.core.config import settings
+        if settings.has_real_claude_key:
+            health_status["dependencies"]["claude"] = {
+                "status": "configured",
+                "type": "anthropic_api"
+            }
+        else:
+            health_status["dependencies"]["claude"] = {
+                "status": "test_mode",
+                "type": "anthropic_api"
+            }
+    except Exception as e:
+        health_status["dependencies"]["claude"] = {
+            "status": "error",
+            "error": str(e),
+            "type": "anthropic_api"
+        }
+    
+    # Check GitHub App configuration
+    try:
+        if settings.is_production:
+            health_status["dependencies"]["github_app"] = {
+                "status": "configured",
+                "type": "github_app"
+            }
+        else:
+            health_status["dependencies"]["github_app"] = {
+                "status": "test_mode",
+                "type": "github_app"
+            }
+    except Exception as e:
+        health_status["dependencies"]["github_app"] = {
+            "status": "error",
+            "error": str(e),
+            "type": "github_app"
+        }
+    
+    # Add timestamp
+    from datetime import datetime
+    health_status["timestamp"] = datetime.utcnow().isoformat()
+    
+    return health_status
 
 if __name__ == "__main__":
     import uvicorn
