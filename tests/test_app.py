@@ -40,7 +40,18 @@ def test_health_endpoint():
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "healthy"
+    
+    # In test environment, status can be "healthy" or "degraded" depending on dependencies
+    assert data["status"] in ["healthy", "degraded"]
+    assert "version" in data
+    assert "timestamp" in data
+    assert "dependencies" in data
+    
+    # Check that dependencies structure is correct
+    deps = data["dependencies"]
+    assert "database" in deps
+    assert "claude" in deps
+    assert "github_app" in deps
 
 def test_root_endpoint():
     """Test root endpoint"""
