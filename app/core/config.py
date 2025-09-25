@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import Optional
 import os
 
@@ -6,12 +7,12 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
     
     # GitHub App Configuration
-    GITHUB_APP_ID: str
-    GITHUB_PRIVATE_KEY_PATH: str
-    GITHUB_WEBHOOK_SECRET: str
+    GITHUB_APP_ID: str = "test_app_id"
+    GITHUB_PRIVATE_KEY_PATH: str = "test_key.pem"
+    GITHUB_WEBHOOK_SECRET: str = "test_secret"
     
     # Claude API Configuration
-    ANTHROPIC_API_KEY: str
+    ANTHROPIC_API_KEY: str = "test_api_key"
     
     # Database Configuration
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/ci_sage"
@@ -26,9 +27,26 @@ class Settings(BaseSettings):
     CUSTOM_ANALYSIS_PROMPT: Optional[str] = None
     CUSTOM_REMEDIATION_PROMPT: Optional[str] = None
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    # Helper properties
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production with real credentials"""
+        return (
+            self.APP_ENV == "production" and
+            self.ANTHROPIC_API_KEY != "test_api_key" and
+            self.GITHUB_APP_ID != "test_app_id"
+        )
+    
+    @property
+    def has_real_claude_key(self) -> bool:
+        """Check if Claude API key is real (not test value)"""
+        return self.ANTHROPIC_API_KEY != "test_api_key"
+    
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore"
+    )
 
 # Global settings instance
 settings = Settings()
