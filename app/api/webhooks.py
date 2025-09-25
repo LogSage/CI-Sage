@@ -34,73 +34,109 @@ def verify_webhook_signature(payload: bytes, signature: str) -> bool:
 
 @router.post("/github")
 async def github_webhook(request: Request, db: Session = Depends(get_db)):
-    """Handle GitHub webhook events"""
+    """Handle GitHub webhook events with detailed step logging"""
+    logger.info("WEBHOOK RECEIVED: Starting GitHub webhook processing")
+    
     try:
-        # Get the raw payload
+        # Step 1: Get raw payload
+        logger.info("STEP 1: Extracting webhook payload")
         payload = await request.body()
+        logger.info(f"Payload size: {len(payload)} bytes")
         
-        # Verify webhook signature
+        # Step 2: Verify webhook signature
+        logger.info("STEP 2: Verifying webhook signature")
         signature = request.headers.get('X-Hub-Signature-256', '')
         if not verify_webhook_signature(payload, signature):
-            logger.warning("Invalid webhook signature")
+            logger.warning("Invalid webhook signature - rejecting request")
             raise HTTPException(status_code=401, detail="Invalid signature")
+        logger.info("Webhook signature verified successfully")
         
-        # Parse the payload
+        # Step 3: Parse payload
+        logger.info("STEP 3: Parsing webhook payload")
         event_data = json.loads(payload)
         event_type = request.headers.get('X-GitHub-Event', '')
+        logger.info(f"Event type: {event_type}")
         
-        logger.info(f"Received GitHub event: {event_type}")
-        
-        # Handle workflow_run events
+        # Step 4: Process event
+        logger.info(f"STEP 4: Processing {event_type} event")
         if event_type == 'workflow_run':
             await handle_workflow_run_event(event_data, db)
+        else:
+            logger.info(f"Skipping non-workflow event: {event_type}")
         
-        return JSONResponse(content={"status": "processed"})
+        logger.info("WEBHOOK PROCESSING COMPLETED SUCCESSFULLY")
+        return JSONResponse(content={"status": "processed", "event_type": event_type})
         
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON payload")
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON parsing error: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON")
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
     except Exception as e:
-        logger.error(f"Error processing webhook: {e}")
+        logger.error(f"Unexpected error processing webhook: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 async def handle_workflow_run_event(event_data: Dict[str, Any], db: Session):
-    """Handle workflow_run webhook events"""
+    """Handle workflow_run webhook events with detailed step logging"""
+    logger.info("WORKFLOW RUN EVENT: Starting workflow analysis")
+    
     try:
+        # Step 1: Extract event data
+        logger.info("STEP 1: Extracting workflow run data")
         workflow_run = event_data.get('workflow_run', {})
         repository = event_data.get('repository', {})
         action = event_data.get('action', '')
         
-        # Only process completed workflows
+        logger.info(f"Action: {action}")
+        logger.info(f"Repository: {repository.get('full_name', 'Unknown')}")
+        
+        # Step 2: Check if workflow is completed
+        logger.info("STEP 2: Checking workflow completion status")
         if action != 'completed':
             logger.info(f"Skipping workflow_run event with action: {action}")
             return
+        logger.info("Workflow is completed")
         
-        # Only process failed workflows
+        # Step 3: Check if workflow failed
+        logger.info("STEP 3: Checking workflow conclusion")
         conclusion = workflow_run.get('conclusion', '')
+        logger.info(f"Conclusion: {conclusion}")
+        
         if conclusion not in ['failure', 'cancelled']:
             logger.info(f"Skipping successful workflow_run with conclusion: {conclusion}")
             return
+        logger.info("Workflow failed - proceeding with analysis")
         
-        # Extract workflow information
+        # Step 4: Extract workflow information
+        logger.info("STEP 4: Extracting workflow details")
         workflow_run_id = workflow_run.get('id')
         workflow_name = workflow_run.get('name', 'Unknown')
         head_sha = workflow_run.get('head_sha', '')
         repository_name = repository.get('full_name', '')
         installation_id = str(event_data.get('installation', {}).get('id', ''))
         
+        logger.info(f"Workflow ID: {workflow_run_id}")
+        logger.info(f"Workflow Name: {workflow_name}")
+        logger.info(f"Repository: {repository_name}")
+        logger.info(f"Head SHA: {head_sha[:8]}...")
+        logger.info(f"Installation ID: {installation_id}")
+        
         if not all([workflow_run_id, head_sha, repository_name, installation_id]):
             logger.error("Missing required workflow_run data")
             return
         
-        logger.info(f"Processing failed workflow: {workflow_name} (ID: {workflow_run_id})")
-        
-        # Process the workflow
+        # Step 5: Initialize processors
+        logger.info("STEP 5: Initializing AI processors")
         processor = WorkflowProcessor(
             github_api=github_api,
             claude_analyzer=claude_analyzer,
             learning_system=LearningSystem(db)
         )
+        logger.info("Processors initialized successfully")
+        
+        # Step 6: Process workflow failure with AI analysis
+        logger.info("STEP 6: Starting AI-powered workflow analysis")
+        logger.info(f"Analyzing failed workflow: {workflow_name} (ID: {workflow_run_id})")
         
         await processor.process_workflow_failure(
             workflow_run_id=workflow_run_id,
@@ -111,10 +147,12 @@ async def handle_workflow_run_event(event_data: Dict[str, Any], db: Session):
             conclusion=conclusion
         )
         
+        logger.info("WORKFLOW ANALYSIS COMPLETED SUCCESSFULLY")
         logger.info(f"Successfully processed workflow_run {workflow_run_id}")
         
     except Exception as e:
         logger.error(f"Error handling workflow_run event: {e}")
+        logger.error(f"Workflow ID: {workflow_run.get('id', 'Unknown')}")
         # Don't raise exception to avoid webhook retries for processing errors
 
 @router.get("/webhooks/health")
