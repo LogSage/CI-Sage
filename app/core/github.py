@@ -143,6 +143,23 @@ class GitHubAPI:
         
         if response.status_code == 200:
             return response.text
+        elif response.status_code == 302:
+            # GitHub returns a redirect to a signed URL for logs
+            logger.info("GitHub returned redirect for logs - following redirect")
+            redirect_url = response.headers.get('Location')
+            if redirect_url:
+                # Make a direct request to the redirect URL
+                async with httpx.AsyncClient() as client:
+                    redirect_response = await client.get(redirect_url)
+                    if redirect_response.status_code == 200:
+                        logger.info(f"Successfully fetched logs from redirect URL: {len(redirect_response.text)} characters")
+                        return redirect_response.text
+                    else:
+                        logger.error(f"Failed to fetch logs from redirect URL: {redirect_response.status_code}")
+                        return ""
+            else:
+                logger.error("No redirect URL found in 302 response")
+                return ""
         else:
             logger.error(f"Failed to get workflow logs: {response.status_code}")
             return ""
