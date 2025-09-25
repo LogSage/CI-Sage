@@ -221,7 +221,7 @@ class WorkflowProcessor:
                 head_sha=head_sha,
                 status="completed",
                 conclusion="failure",
-                output=output.dict()
+                output=output.model_dump()
             )
             
             logger.info(f"Created check run: {check_run.get('id')}")

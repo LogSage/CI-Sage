@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
 import logging
@@ -17,10 +18,20 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager"""
+    # Startup
+    await init_db()
+    yield
+    # Shutdown (if needed)
+    pass
+
 app = FastAPI(
     title="CI-Sage",
     description="An agentic system that analyzes GitHub Actions failures",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -34,11 +45,6 @@ app.add_middleware(
 
 # Include routers
 app.include_router(webhook_router, prefix="/webhooks")
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database and other startup tasks"""
-    await init_db()
 
 @app.get("/")
 async def root():
