@@ -18,14 +18,22 @@ class GitHubAppAuth:
         self._installation_tokens = {}  # Cache for installation tokens
     
     def _load_private_key(self) -> bytes:
-        """Load the private key from file"""
+        """Load the private key from environment variable or file"""
         if self._private_key is None:
-            try:
-                with open(self.private_key_path, 'rb') as key_file:
-                    self._private_key = key_file.read()
-            except FileNotFoundError:
-                logger.error(f"Private key file not found: {self.private_key_path}")
-                raise
+            # Try environment variable first (for Railway deployment)
+            if settings.GITHUB_PRIVATE_KEY:
+                logger.info("Loading private key from environment variable")
+                self._private_key = settings.GITHUB_PRIVATE_KEY.encode('utf-8')
+            else:
+                # Fallback to file (for local development)
+                try:
+                    logger.info(f"Loading private key from file: {self.private_key_path}")
+                    with open(self.private_key_path, 'rb') as key_file:
+                        self._private_key = key_file.read()
+                except FileNotFoundError:
+                    logger.error(f"Private key file not found: {self.private_key_path}")
+                    logger.error("Set GITHUB_PRIVATE_KEY environment variable for Railway deployment")
+                    raise
         return self._private_key
     
     def generate_app_token(self) -> str:
