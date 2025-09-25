@@ -56,8 +56,7 @@ async def test_claude_analyzer():
     with patch('app.services.claude_analyzer.ClaudeAnalyzer') as mock_analyzer_class:
         mock_analyzer = MagicMock()
         mock_analyzer_class.return_value = mock_analyzer
-        
-        # Mock the analyze_workflow_failure method to return a coroutine
+                # Mock the analyze_workflow_failure method to return a coroutine
         from app.models.schemas import AnalysisResult
         mock_result = AnalysisResult(
             failure_reason="Dependency not found",
@@ -75,7 +74,7 @@ async def test_claude_analyzer():
         
         mock_analyzer.analyze_workflow_failure = mock_analyze
         
-        # Test the mocked analyzer
+        # Test the mocked analyzerr 
         result = await mock_analyzer.analyze_workflow_failure(
             logs="npm ERR! ENOENT: no such file or directory",
             workflow_name="test-workflow",
@@ -90,11 +89,12 @@ async def test_claude_analyzer():
 def test_webhook_signature_verification():
     """Test webhook signature verification"""
     from app.api.webhooks import verify_webhook_signature
+    from app.core.config import settings
     import hmac
     import hashlib
     
     payload = b'{"test": "data"}'
-    secret = "test_secret"  # Use the same secret as in settings
+    secret = settings.GITHUB_WEBHOOK_SECRET  # Use the actual secret from settings
     
     # Generate valid signature
     signature = 'sha256=' + hmac.new(
