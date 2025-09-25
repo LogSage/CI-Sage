@@ -23,7 +23,9 @@ class GitHubAppAuth:
             # Try environment variable first (for Railway deployment)
             if settings.GITHUB_PRIVATE_KEY:
                 logger.info("Loading private key from environment variable")
-                self._private_key = settings.GITHUB_PRIVATE_KEY.encode('utf-8')
+                # Convert \n back to actual newlines
+                private_key_content = settings.GITHUB_PRIVATE_KEY.replace('\\n', '\n')
+                self._private_key = private_key_content.encode('utf-8')
             else:
                 # Fallback to file (for local development)
                 try:
