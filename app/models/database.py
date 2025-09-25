@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, JSON, Float
+from sqlalchemy import Column, Integer, BigInteger, String, Text, DateTime, Boolean, JSON, Float
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -22,7 +22,7 @@ class WorkflowAnalysis(Base):
     __tablename__ = "workflow_analyses"
     
     id = Column(Integer, primary_key=True, index=True)
-    workflow_run_id = Column(Integer, index=True)
+    workflow_run_id = Column(BigInteger, index=True)
     repository = Column(String(200), index=True)  # owner/repo format
     workflow_name = Column(String(200))
     status = Column(String(50))  # success, failure, cancelled
@@ -30,9 +30,9 @@ class WorkflowAnalysis(Base):
     confidence_score = Column(Float)
     remediation_steps = Column(JSON)
     error_signature_id = Column(Integer)  # Reference to ErrorSignature
-    check_run_id = Column(Integer)  # GitHub Check Run ID
-    issue_id = Column(Integer)  # GitHub Issue ID (if created)
-    pr_id = Column(Integer)  # GitHub PR ID (if created)
+    check_run_id = Column(BigInteger)  # GitHub Check Run ID
+    issue_id = Column(BigInteger)  # GitHub Issue ID (if created)
+    pr_id = Column(BigInteger)  # GitHub PR ID (if created)
     analysis_prompt = Column(Text)  # The prompt used for analysis
     analysis_response = Column(Text)  # Full LLM response
     created_at = Column(DateTime(timezone=True), server_default=func.now())

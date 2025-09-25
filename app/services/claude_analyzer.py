@@ -13,7 +13,7 @@ class ClaudeAnalyzer:
     
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        self.model = "claude-3-sonnet-20240229"  # Use Claude 3 Sonnet for analysis
+        self.model = "claude-3-5-sonnet-20241022"  # Use latest Claude 3.5 Sonnet for analysis
     
     def _generate_error_signature_hash(self, logs: str, error_pattern: str) -> str:
         """Generate a hash for error signature matching"""
